@@ -52,6 +52,8 @@ An **HR Policy Assistant** answers employees' HR policy questions using an exter
 
 **The storyline:** Security and Finance require that every LLM call be logged, redacted and cost-capped. The Chief Architect adds **RULE-03: all external AI calls go through the enterprise AI Gateway**. The check immediately finds that the assistant calls the provider directly (flow F5). You then re-engineer the design, propagate the change through the spec, tasks and validation, and watch the status move ❌ → ⏳ → ✅.
 
+![HR Policy Assistant architecture: a direct call to the external LLM breaks RULE-03; routing through the AI Gateway fixes it](docs/architecture-sketch.svg)
+
 ## What it shows
 
 > Companion to a first SDD demo that checks documents only; this one also checks the architecture model.
@@ -62,6 +64,8 @@ An **HR Policy Assistant** answers employees' HR policy questions using an exter
 - The check catches **architecture drift** and **rule conflicts**.
 
 ## Demo at a glance
+
+> **Before every run:** `python arch.py reset` (or Run Task → **SDD: Reset demo to start**). It puts `sdd/` back to the 2-rule starting state.
 
 **Steps are file edits; commands only check, reset or load a finished copy.** You (or an AI assistant) edit the markdown files in `sdd/`, then run `check`. Commands run from the repo root as `python arch.py <command>` (or `Ctrl+Shift+B` for `check`); see [Terminal commands](#terminal-commands). The exact rows to paste are in the [Script](#script) below.
 
@@ -95,7 +99,7 @@ An **HR Policy Assistant** answers employees' HR policy questions using an exter
 
 **Run the check:** `Ctrl+Shift+B` (Mac: `Cmd+Shift+B`) or `python arch.py check`.
 The check also regenerates the diagram, and the preview refreshes on its own.
-**Before each rehearsal:** Terminal → Run Task → **SDD: Reset demo to start**
+**Before each rehearsal:** `python arch.py reset`, or Terminal → Run Task → **SDD: Reset demo to start**
 
 ```
 sdd/constitution.md    rules + the check each one runs
@@ -107,6 +111,7 @@ architecture-diagram.md  GENERATED from the model
 arch.py                checker: traceability + conformance + diagram
 demo/start, demo/solution   reset copies and fallback
 docs/*.png             before/after diagrams for your slides
+docs/architecture-sketch.svg  architecture sketch shown in this README
 ```
 
 ## Terminal commands
@@ -214,7 +219,7 @@ Simulate what happens after the demo, in this order, pressing `Ctrl+Shift+B` aft
    **Say:** "You can't declare victory without evidence."
 4. **The test runs.** In `validation.md`, set VAL-003 Result to `Pass`, with a date, reviewer and evidence path. → ✅ **PASS.**
 
-Reset afterwards if you want to rerun the optional beats from the ⏳ state: Run Task → **SDD: Load finished solution (fallback)**.
+To rerun step 6 from the ⏳ state: `python arch.py solution` (Run Task → **SDD: Load finished solution (fallback)**). When you're done, `python arch.py reset`.
 
 ### 7. Optional: architecture drift (1 min)
 A team adds a "quick" direct call. In `spec.md` **Flows**, add after F6:

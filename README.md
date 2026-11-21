@@ -1,13 +1,90 @@
 # SDD Architecture Demo — AI Gateway (VS Code)
 
-For architects and engineers. It's the same HR Policy Assistant as the first demo, but here the rules are checked against the **architecture model**, not just the documents. About 10 minutes.
+A 10-minute, hands-on demo of **Specification-Driven Development (SDD) for architecture governance**. Architecture rules are written as executable checks, the architecture is a model in markdown, and a small script proves, on every change, that the design follows the rules and that every rule is traced to a requirement, a control, a task and evidence. For architects and engineers. Python only, no packages.
 
-**What it shows that demo 1 doesn't:**
+**Contents:** [The goal](#the-goal) · [How it works](#how-it-works) · [The scenario](#the-scenario) · [What it shows](#what-it-shows) · [Demo at a glance](#demo-at-a-glance) · [Setup](#setup-once) · [Terminal commands](#terminal-commands) · [Script](#script) · [Notes](#notes)
+
+## The goal
+
+Architecture standards usually live in documents and reviews. They drift: diagrams go stale, rules get bypassed, and "done" means someone said so. This demo shows a different approach:
+
+- **Rules are executable.** Each rule in the constitution names a fitness function that tests the architecture model.
+- **The model is the source of truth.** The diagram is generated from it, so it can't drift.
+- **Every rule is traced end to end**: requirement → control at a real component → task → validation with evidence.
+- **Humans decide, tools verify, AI accelerates.** AI can propose design changes and paperwork; only accountable people approve decisions and accept evidence.
+
+## How it works
+
+Four markdown files in `sdd/` are the source of truth:
+
+| File | Holds | Owned by |
+|---|---|---|
+| `constitution.md` | Rules (RULE-##), each naming a check | Chief Architect (approves rules) |
+| `spec.md` | Requirements (REQ), the architecture model (zones, components, flows), decisions (ADR), controls (CTRL) | Solution architect |
+| `tasks.md` | Tasks (TASK) that implement each control | Delivery teams |
+| `validation.md` | Validations (VAL) that prove each control, with evidence | Security / assurance |
+
+Every rule must form a complete chain:
+
+```
+RULE-03 → REQ-003 → CTRL-003 @ ai-gateway (ADR-002) → TASK-003 → VAL-003
+```
+
+`python arch.py check` does three things:
+
+1. **Traceability.** Every rule has a requirement, every requirement a control, every control a task and a validation; every reference points to something real.
+2. **Conformance.** Each rule's fitness function runs against the architecture model (for example, "no flow to an external AI model unless it comes from a gateway").
+3. **Diagram.** Regenerates `architecture-diagram.md` (Mermaid) from the model; violating flows are drawn red.
+
+Each rule gets one status:
+
+| Status | Meaning |
+|---|---|
+| ❌ Broken | The design breaks the rule, or the chain has a gap, or a task is Done without passing evidence |
+| ⏳ Proposed | Design conforms and is traced, but a decision is Proposed, a task isn't done, or a validation hasn't run |
+| ✅ Validated | Conformant, traced, decision accepted, task done, validation passed |
+
+Overall: **FAIL** (any ❌), **CONFORMANT** (some ⏳), or **PASS** (all ✅). The check exits with code 1 on FAIL, so it can block a pull request in CI.
+
+## The scenario
+
+An **HR Policy Assistant** answers employees' HR policy questions using an external LLM. The starting architecture: two trust zones (corporate network, third-party SaaS), six components, five flows. Two rules are in force and fully validated: personal data never goes external (RULE-01), and AI is read-only on systems of record (RULE-02).
+
+**The storyline:** Security and Finance require that every LLM call be logged, redacted and cost-capped. The Chief Architect adds **RULE-03: all external AI calls go through the enterprise AI Gateway**. The check immediately finds that the assistant calls the provider directly (flow F5). You then re-engineer the design, propagate the change through the spec, tasks and validation, and watch the status move ❌ → ⏳ → ✅.
+
+## What it shows
+
+> Companion to a first SDD demo that checks documents only; this one also checks the architecture model.
 
 - Rules are tested by **fitness functions** that run against the architecture model.
 - The **diagram is generated** from the model, so it can't drift from it.
 - Traceability includes **decisions (ADR)** and **controls tied to real components**.
 - The check catches **architecture drift** and **rule conflicts**.
+
+## Demo at a glance
+
+**Steps are file edits; commands only check, reset or load a finished copy.** You (or an AI assistant) edit the markdown files in `sdd/`, then run `check`. Commands run from the repo root as `python arch.py <command>` (or `Ctrl+Shift+B` for `check`); see [Terminal commands](#terminal-commands). The exact rows to paste are in the [Script](#script) below.
+
+| Step | File (in `sdd/`) | You do | Command | You should see |
+|---|---|---|---|---|
+| 0. Prepare | — | Reset to the starting state | `reset` | ✅ PASS (2 rules) |
+| 1. Baseline | `spec.md` | Walk the model: 2 zones, 6 components, 5 flows. Show one chain: RULE-02 → REQ-002 → CTRL-002 @ hr-system → TASK-002 → VAL-002 | `check` | ✅ PASS: 2 rules traced, validated, architecture conforms |
+| 2. Trigger | — | Say: "Security and Finance want every LLM call logged, redacted and cost-capped" | — | — |
+| 3. Add the rule | `constitution.md` | Paste the RULE-03 row under RULE-02 (Script step 3) | `check` | ❌ RULE-03: no requirement; F5 bypasses the gateway; F5 red in the diagram |
+| 4. Re-engineer: **pick one route** (A, B or C) | | | | |
+| 4A. With AI *(recommended)* | all four | Prompt Claude Code or Copilot (Script step 4A); it fixes the design and propagates. Review the diffs | `check` | Go to step 5 |
+| 4B-1. By hand: fix the design | `spec.md` | Add the `ai-gateway` component; replace F5 with F5 + F6 through the gateway (Script step 4B) | `check` | ARCH ✅, but RULE-03 still ❌ (no requirement) |
+| 4B-2. By hand: propagate | `spec.md`, `tasks.md`, `validation.md` | Paste REQ-003, ADR-002, CTRL-003 into `spec.md`; TASK-003 into `tasks.md`; VAL-003 into `validation.md` (Script step 4B) | `check` | Go to step 5 |
+| 4C. Fallback | — | Load the finished version | `solution` | Go to step 5 |
+| 5. Check again | — | Run the check | `check` | ⏳ CONFORMANT: ADR-002 Proposed, TASK-003 not started, validation not run |
+| 6a. Board approves *(optional)* | `spec.md` | ADR-002 status → `Accepted` | `check` | ⏳ the ADR drops off the pending list |
+| 6b. Build starts | `tasks.md` | TASK-003 status → `In progress` | `check` | ⏳ still pending |
+| 6c. Try to cheat | `tasks.md` | TASK-003 status → `Done` | `check` | ❌ TASK-003 is marked Done, but its validation has not passed |
+| 6d. Test passes | `validation.md` | VAL-003 Result → `Pass`, with date, reviewer and evidence path | `check` | ✅ PASS. To rerun step 6, run `solution` |
+| 7. Drift *(optional)* | `spec.md` | Add F7 `assistant → llm-provider` after F6; check; then delete the row | `check` | ❌ F7 bypasses the gateway; red in the diagram |
+| 8. Conflict *(optional)* | `spec.md` | Add F7 `assistant → hr-system`, personal, write; check; then delete the row | `check` | ❌ RULE-02: AI component writes to a system of record |
+| 9. Close | — | Recap: rules are executable, the diagram is generated, every change is traced, humans approve | — | — |
+| Afterwards | — | Back to the starting state | `reset` | ✅ PASS (2 rules) |
 
 ## Setup (once)
 

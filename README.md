@@ -32,6 +32,18 @@ demo/start, demo/solution   reset copies and fallback
 docs/*.png             before/after diagrams for your slides
 ```
 
+## Terminal commands
+
+Prefer the terminal (PowerShell, or the VS Code terminal) to VS Code tasks? Run these from the repo root. Use `python3` on Mac/Linux.
+
+| Command | Same as VS Code task | What it does |
+|---|---|---|
+| `python arch.py check` | SDD: Check architecture (`Ctrl+Shift+B`) | Checks traceability and conformance; regenerates the diagram |
+| `python arch.py reset` | SDD: Reset demo to start | Copies `demo/start` into `sdd/` (2 rules), then runs the check |
+| `python arch.py solution` | SDD: Load finished solution (fallback) | Copies `demo/solution` into `sdd/` (RULE-03 done), then runs the check |
+
+To discard all local edits using git instead: `git checkout -- sdd architecture-diagram.md`
+
 ## Script
 
 ### 1. Baseline (2 min)

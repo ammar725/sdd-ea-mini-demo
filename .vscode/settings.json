@@ -1,0 +1,9 @@
+{
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 500,
+  "editor.wordWrap": "off",
+  "editor.fontSize": 16,
+  "terminal.integrated.fontSize": 16,
+  "editor.minimap.enabled": false,
+  "workbench.editor.enablePreview": false
+}
